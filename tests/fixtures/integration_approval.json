@@ -1,0 +1,62 @@
+{
+  "contract": "device-v2",
+  "version": 1,
+  "description": "Deriving an integration's grant key and confirmation code from an X25519 exchange (integrations.md, Approval). Keys, request ids and outputs are hex. Private keys are given so an implementation can reproduce the public keys and the shared secret; a real lamp and integration each make a fresh pair per request and never reveal the private half. Generated with the Python cryptography package, independently of every implementation.",
+  "keyContext": "pill-pal/integration-key/v1",
+  "codeContext": "pill-pal/integration-code/v1",
+  "framing": "Each part is its length as four big-endian bytes, then the bytes: the context, the device id as UTF-8, then the raw bytes of the request id, the lamp's public key and the integration's public key. grantKey is HMAC-SHA256 keyed by the shared secret. code is the first four bytes of the code HMAC as a big-endian integer, modulo 1,000,000, as six digits with leading zeros.",
+  "cases": [
+    {
+      "id": "a-first-request",
+      "note": "Home Assistant and the lamp derive the same grant key and code.",
+      "deviceId": "PP-000001",
+      "requestId": "00112233445566778899aabbccddeeff",
+      "lampPrivateKey": "a8abababababababababababababababababababababababababababababab6b",
+      "lampPublicKey": "e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c624859",
+      "integrationPrivateKey": "c8cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd4d",
+      "integrationPublicKey": "b5bea823d9c9ff576091c54b7c596c0ae296884f0e150290e88455d7fba6126f",
+      "sharedSecret": "235101b705734aae8d4c2d9d0f1baf90bbb2a8c233d831a80d43815bb47ead10",
+      "grantKey": "19563b345be76fa4cd6ecb45fbee4abacf0c2cf569ba016f12fcc49eeac7b35c",
+      "code": "431709"
+    },
+    {
+      "id": "another-request-same-keys",
+      "note": "The request id is inside both derivations, so a replayed approval for an old request cannot produce this key.",
+      "deviceId": "PP-000001",
+      "requestId": "ffeeddccbbaa99887766554433221100",
+      "lampPrivateKey": "a8abababababababababababababababababababababababababababababab6b",
+      "lampPublicKey": "e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c624859",
+      "integrationPrivateKey": "c8cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd4d",
+      "integrationPublicKey": "b5bea823d9c9ff576091c54b7c596c0ae296884f0e150290e88455d7fba6126f",
+      "sharedSecret": "235101b705734aae8d4c2d9d0f1baf90bbb2a8c233d831a80d43815bb47ead10",
+      "grantKey": "899abb375f47d7ce25a7e8d6a5a318b53a738e616b118352fd7dffaf27158806",
+      "code": "748494"
+    },
+    {
+      "id": "another-lamp",
+      "note": "The device id is inside both derivations.",
+      "deviceId": "PP-1620E4",
+      "requestId": "00112233445566778899aabbccddeeff",
+      "lampPrivateKey": "a8abababababababababababababababababababababababababababababab6b",
+      "lampPublicKey": "e3712d851a0e5d79b831c5e34ab22b41a198171de209b8b8faca23a11c624859",
+      "integrationPrivateKey": "c8cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd4d",
+      "integrationPublicKey": "b5bea823d9c9ff576091c54b7c596c0ae296884f0e150290e88455d7fba6126f",
+      "sharedSecret": "235101b705734aae8d4c2d9d0f1baf90bbb2a8c233d831a80d43815bb47ead10",
+      "grantKey": "ed5716b12efbb1745b396b2dea94ba73ea000979787667547100239a0b313b82",
+      "code": "730256"
+    },
+    {
+      "id": "rfc7748-keys",
+      "note": "Alice and Bob from RFC 7748 section 6.1, so an implementation can check its X25519 against the published shared secret 4a5d9d5b...742 first.",
+      "deviceId": "PP-000001",
+      "requestId": "0f0e0d0c0b0a09080706050403020100",
+      "lampPrivateKey": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "lampPublicKey": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "integrationPrivateKey": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+      "integrationPublicKey": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+      "sharedSecret": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
+      "grantKey": "dbbba50dcb29ced2e6bd9cacb373181e0a7178732dca65e97e0981a795fc910a",
+      "code": "174143"
+    }
+  ]
+}

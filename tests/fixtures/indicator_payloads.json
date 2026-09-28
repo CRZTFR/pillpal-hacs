@@ -1,0 +1,598 @@
+{
+  "contract": "device-v2",
+  "version": 1,
+  "description": "Indicator payloads (indicators.md): each case is the payload of a transient command that has passed admission. 'valid' cases give the canonical form the lamp stores and reports, with defaults filled in and absent optional fields as null. 'invalid_payload' is a value outside the rules; 'malformed' is a field of the wrong type, marked dynamicOnly because a statically typed client cannot construct it. 'not_permitted' is the one permission question only the payload can answer. holder is the sender's grant kind.",
+  "lamp": {
+    "now": 1789635600000
+  },
+  "integrationGrantId": 9,
+  "cases": [
+    {
+      "id": "notify-pulse",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "pulse",
+        "colour": "#00FF00",
+        "durationSeconds": 5
+      },
+      "expect": "valid",
+      "canonical": {
+        "pattern": "pulse",
+        "colour": "#00ff00",
+        "durationSeconds": 5
+      },
+      "note": "Colours are canonical in lower case."
+    },
+    {
+      "id": "notify-rainbow-needs-no-colour",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "rainbow",
+        "durationSeconds": 60
+      },
+      "expect": "valid",
+      "canonical": {
+        "pattern": "rainbow",
+        "colour": null,
+        "durationSeconds": 60
+      }
+    },
+    {
+      "id": "notify-rainbow-ignores-a-colour",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "rainbow",
+        "colour": "#123456",
+        "durationSeconds": 1
+      },
+      "expect": "valid",
+      "canonical": {
+        "pattern": "rainbow",
+        "colour": null,
+        "durationSeconds": 1
+      }
+    },
+    {
+      "id": "notify-unknown-pattern",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "strobe",
+        "colour": "#ffffff",
+        "durationSeconds": 5
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "notify-missing-colour",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "flash",
+        "durationSeconds": 5
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "notify-zero-seconds",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "flash",
+        "colour": "#ffffff",
+        "durationSeconds": 0
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "notify-over-a-minute",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "flash",
+        "colour": "#ffffff",
+        "durationSeconds": 61
+      },
+      "expect": "invalid_payload",
+      "note": "Capped so a notify cannot hide a due reminder for long."
+    },
+    {
+      "id": "notify-missing-duration",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "flash",
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "notify-bad-colour",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "flash",
+        "colour": "green",
+        "durationSeconds": 5
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "notify-fractional-seconds",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "flash",
+        "colour": "#ffffff",
+        "durationSeconds": 2.5
+      },
+      "expect": "malformed",
+      "dynamicOnly": true
+    },
+    {
+      "id": "notify-duration-as-string",
+      "operation": "notify",
+      "holder": "phone",
+      "payload": {
+        "pattern": "flash",
+        "colour": "#ffffff",
+        "durationSeconds": "5"
+      },
+      "expect": "malformed",
+      "dynamicOnly": true
+    },
+    {
+      "id": "status-defaults",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "garage",
+        "colour": "#ff8800"
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "garage",
+        "colour": "#ff8800",
+        "pattern": "solid",
+        "brightness": 255,
+        "label": null,
+        "priority": "normal",
+        "clearsAt": null
+      }
+    },
+    {
+      "id": "status-everything",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "door.front-1_a",
+        "colour": "#0000ff",
+        "pattern": "pulse",
+        "brightness": 40,
+        "label": "  Front door  ",
+        "priority": "high",
+        "clearsAt": 1789639200000
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "door.front-1_a",
+        "colour": "#0000ff",
+        "pattern": "pulse",
+        "brightness": 40,
+        "label": "Front door",
+        "priority": "high",
+        "clearsAt": 1789639200000
+      },
+      "note": "Labels are trimmed like reminder names."
+    },
+    {
+      "id": "status-empty-label-is-none",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "a",
+        "colour": "#000001",
+        "label": "   "
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "a",
+        "colour": "#000001",
+        "pattern": "solid",
+        "brightness": 255,
+        "label": null,
+        "priority": "normal",
+        "clearsAt": null
+      }
+    },
+    {
+      "id": "status-id-at-the-limit",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaa",
+        "colour": "#ffffff"
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaa",
+        "colour": "#ffffff",
+        "pattern": "solid",
+        "brightness": 255,
+        "label": null,
+        "priority": "normal",
+        "clearsAt": null
+      }
+    },
+    {
+      "id": "status-label-at-the-limit",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "x",
+        "colour": "#ffffff",
+        "label": "éééééééééééééééééééééééa"
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "x",
+        "colour": "#ffffff",
+        "pattern": "solid",
+        "brightness": 255,
+        "label": "éééééééééééééééééééééééa",
+        "priority": "normal",
+        "clearsAt": null
+      },
+      "note": "47 bytes of UTF-8: 23 two-byte characters and one more."
+    },
+    {
+      "id": "status-id-too-long",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-id-empty",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "",
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-id-with-a-space",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "garage door",
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-id-not-ascii",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "garagé",
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-missing-colour",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "garage"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-brightness-zero",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "g",
+        "colour": "#ffffff",
+        "brightness": 0
+      },
+      "expect": "invalid_payload",
+      "note": "A status that cannot be seen is a clear, and clear_status says that."
+    },
+    {
+      "id": "status-brightness-over",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "g",
+        "colour": "#ffffff",
+        "brightness": 256
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-unknown-pattern",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "g",
+        "colour": "#ffffff",
+        "pattern": "flash"
+      },
+      "expect": "invalid_payload",
+      "note": "Flash is a notify pattern. A status that flashed for hours would be an alarm."
+    },
+    {
+      "id": "status-unknown-priority",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "g",
+        "colour": "#ffffff",
+        "priority": "urgent"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-label-too-long",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "g",
+        "colour": "#ffffff",
+        "label": "éééééééééééééééééééééééé"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-clears-in-the-past",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "g",
+        "colour": "#ffffff",
+        "clearsAt": 1789635600000
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "status-clears-at-as-string",
+      "operation": "set_status",
+      "holder": "phone",
+      "payload": {
+        "id": "g",
+        "colour": "#ffffff",
+        "clearsAt": "soon"
+      },
+      "expect": "malformed",
+      "dynamicOnly": true
+    },
+    {
+      "id": "clear-own",
+      "operation": "clear_status",
+      "holder": "phone",
+      "payload": {
+        "id": "garage"
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "garage",
+        "owner": null
+      }
+    },
+    {
+      "id": "clear-another-owner-from-a-phone",
+      "operation": "clear_status",
+      "holder": "phone",
+      "payload": {
+        "id": "garage",
+        "owner": 9
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "garage",
+        "owner": 9
+      },
+      "note": "The app can clear what an integration left behind."
+    },
+    {
+      "id": "clear-another-owner-from-an-integration",
+      "operation": "clear_status",
+      "holder": "integration",
+      "payload": {
+        "id": "garage",
+        "owner": 2
+      },
+      "expect": "not_permitted",
+      "note": "Refused when the payload is read, after admission has already allowed clear_status."
+    },
+    {
+      "id": "clear-naming-itself-from-an-integration",
+      "operation": "clear_status",
+      "holder": "integration",
+      "payload": {
+        "id": "garage",
+        "owner": 9
+      },
+      "expect": "valid",
+      "canonical": {
+        "id": "garage",
+        "owner": 9
+      },
+      "note": "The fixture's integration is grant 9, so this names only itself."
+    },
+    {
+      "id": "clear-missing-id",
+      "operation": "clear_status",
+      "holder": "phone",
+      "payload": {},
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "gauge-defaults",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 0.42,
+        "colour": "#FFCC00"
+      },
+      "expect": "valid",
+      "canonical": {
+        "value": 0.42,
+        "colour": "#ffcc00",
+        "colourEnd": null,
+        "staleSeconds": 900
+      }
+    },
+    {
+      "id": "gauge-empty",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 0,
+        "colour": "#ffcc00"
+      },
+      "expect": "valid",
+      "canonical": {
+        "value": 0,
+        "colour": "#ffcc00",
+        "colourEnd": null,
+        "staleSeconds": 900
+      },
+      "note": "An integer is a number."
+    },
+    {
+      "id": "gauge-full-gradient",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 1,
+        "colour": "#ff0000",
+        "colourEnd": "#00ff00",
+        "staleSeconds": 60
+      },
+      "expect": "valid",
+      "canonical": {
+        "value": 1,
+        "colour": "#ff0000",
+        "colourEnd": "#00ff00",
+        "staleSeconds": 60
+      }
+    },
+    {
+      "id": "gauge-stale-at-the-top",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 0.5,
+        "colour": "#ffffff",
+        "staleSeconds": 86400
+      },
+      "expect": "valid",
+      "canonical": {
+        "value": 0.5,
+        "colour": "#ffffff",
+        "colourEnd": null,
+        "staleSeconds": 86400
+      }
+    },
+    {
+      "id": "gauge-negative",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": -0.01,
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "gauge-over-one",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 1.01,
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "gauge-missing-value",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "colour": "#ffffff"
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "gauge-missing-colour",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 0.5
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "gauge-stale-too-short",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 0.5,
+        "colour": "#ffffff",
+        "staleSeconds": 59
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "gauge-stale-too-long",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": 0.5,
+        "colour": "#ffffff",
+        "staleSeconds": 86401
+      },
+      "expect": "invalid_payload"
+    },
+    {
+      "id": "gauge-value-as-string",
+      "operation": "set_gauge",
+      "holder": "phone",
+      "payload": {
+        "value": "0.5",
+        "colour": "#ffffff"
+      },
+      "expect": "malformed",
+      "dynamicOnly": true
+    },
+    {
+      "id": "clear-gauge",
+      "operation": "clear_gauge",
+      "holder": "phone",
+      "payload": {},
+      "expect": "valid",
+      "canonical": {}
+    },
+    {
+      "id": "clear-gauge-no-payload",
+      "operation": "clear_gauge",
+      "holder": "phone",
+      "payload": null,
+      "expect": "valid",
+      "canonical": {},
+      "note": "No payload is the same as an empty one."
+    }
+  ]
+}

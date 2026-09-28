@@ -1,0 +1,159 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Connect a Pill Pal",
+        "description": "Set the lamp up in the Bindicator app first. Then enter its address, which the app shows under the lamp's settings.",
+        "data": {
+          "host": "Address",
+          "port": "Port"
+        }
+      },
+      "discovery_confirm": {
+        "description": "Connect Pill Pal {name} to Home Assistant? You approve the connection in the Bindicator app."
+      },
+      "reauth_confirm": {
+        "title": "Reconnect Pill Pal {name}",
+        "description": "The lamp no longer accepts Home Assistant. It was removed in the app, or the lamp was reset. Continue to ask again, then approve it in the Bindicator app."
+      }
+    },
+    "progress": {
+      "wait_for_approval": "Open the Bindicator app on a phone that controls this lamp and approve \"{name}\". Check the app shows this code: **{code}**. If the codes differ, decline."
+    },
+    "abort": {
+      "already_configured": "This lamp is already connected.",
+      "cannot_connect": "Could not reach the lamp.",
+      "declined": "The connection was declined in the app.",
+      "expired": "Nobody approved the connection within 10 minutes. Start again when you have the app open.",
+      "not_pill_pal": "That device is not a Pill Pal.",
+      "unsupported_api": "This lamp needs a newer version of this integration.",
+      "reauth_successful": "Reconnected."
+    },
+    "error": {
+      "cannot_connect": "Could not reach a Pill Pal at that address."
+    }
+  },
+  "entity": {
+    "light": {
+      "ambient": {
+        "name": "Ambient light",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "warm_white": "Warm white",
+              "candle": "Candle",
+              "ocean": "Ocean",
+              "sunrise": "Sunrise",
+              "forest": "Forest"
+            }
+          }
+        }
+      }
+    },
+    "event": {
+      "touch": {
+        "name": "Touch",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "tap": "Tap",
+              "double_tap": "Double tap",
+              "long_press": "Long press"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "next_reminder": { "name": "Next reminder" },
+      "signalling": { "name": "Reminders showing" },
+      "statuses": { "name": "Statuses" }
+    }
+  },
+  "exceptions": {
+    "unknown_device": { "message": "That device is not a connected Pill Pal." },
+    "refused": { "message": "The lamp refused the command: {outcome}." },
+    "not_authorised": { "message": "The lamp no longer accepts Home Assistant. Reconnect it from the integration page." },
+    "unreachable": { "message": "Could not reach the lamp." }
+  },
+  "selector": {
+    "notify_pattern": {
+      "options": { "flash": "Flash", "pulse": "Pulse", "sweep": "Sweep", "rainbow": "Rainbow" }
+    },
+    "status_pattern": {
+      "options": { "solid": "Solid", "pulse": "Pulse" }
+    },
+    "priority": {
+      "options": { "low": "Low", "normal": "Normal", "high": "High" }
+    }
+  },
+  "services": {
+    "notify": {
+      "name": "Notify",
+      "description": "Play a short pattern, then go back to what the lamp was showing. A touch stops it early.",
+      "fields": {
+        "device_id": { "name": "Lamp", "description": "The Pill Pal to use." },
+        "pattern": { "name": "Pattern", "description": "How the light moves." },
+        "color": { "name": "Colour", "description": "Not used by rainbow." },
+        "duration": { "name": "Duration", "description": "1 to 60 seconds." }
+      }
+    },
+    "set_status": {
+      "name": "Set status",
+      "description": "Show a status until it is cleared. Setting the same ID again updates it. A tap on the lamp dims it.",
+      "fields": {
+        "device_id": { "name": "Lamp", "description": "The Pill Pal to use." },
+        "status_id": { "name": "Status ID", "description": "Your name for it: letters, numbers, dot, dash or underscore, up to 23 characters." },
+        "color": { "name": "Colour", "description": "The status colour." },
+        "pattern": { "name": "Pattern", "description": "Solid, or a slow pulse." },
+        "brightness": { "name": "Brightness", "description": "1 to 255." },
+        "label": { "name": "Label", "description": "Shown in the app, not on the lamp." },
+        "priority": { "name": "Priority", "description": "Higher statuses are shown first when there is not room for all of them." },
+        "clears_at": { "name": "Clear at", "description": "Optional. The lamp clears it at this time." }
+      }
+    },
+    "clear_status": {
+      "name": "Clear status",
+      "description": "Remove a status this integration set.",
+      "fields": {
+        "device_id": { "name": "Lamp", "description": "The Pill Pal to use." },
+        "status_id": { "name": "Status ID", "description": "The ID it was set with." }
+      }
+    },
+    "set_gauge": {
+      "name": "Set gauge",
+      "description": "Fill the lamp to a level from 0 to 1. It shows as stale if no new value arrives in time.",
+      "fields": {
+        "device_id": { "name": "Lamp", "description": "The Pill Pal to use." },
+        "value": { "name": "Value", "description": "0 is empty, 1 is full." },
+        "color": { "name": "Colour", "description": "The colour at the full end, or the only colour." },
+        "color_end": { "name": "Empty-end colour", "description": "Optional. With it, the fill is a gradient." },
+        "stale_after": { "name": "Stale after", "description": "Seconds without a new value before the lamp shows the gauge as stale." }
+      }
+    },
+    "clear_gauge": {
+      "name": "Clear gauge",
+      "description": "Remove the gauge. The lamp goes back to its ambient scene.",
+      "fields": {
+        "device_id": { "name": "Lamp", "description": "The Pill Pal to use." }
+      }
+    },
+    "acknowledge": {
+      "name": "Acknowledge reminder",
+      "description": "Acknowledge one reminder by its occurrence ID. Future reminders are not affected.",
+      "fields": {
+        "device_id": { "name": "Lamp", "description": "The Pill Pal to use." },
+        "occurrence_id": { "name": "Occurrence ID", "description": "From the lamp's state or a touch event." }
+      }
+    },
+    "snooze": {
+      "name": "Snooze reminder",
+      "description": "Snooze one reminder by its occurrence ID for 10 minutes.",
+      "fields": {
+        "device_id": { "name": "Lamp", "description": "The Pill Pal to use." },
+        "occurrence_id": { "name": "Occurrence ID", "description": "From the lamp's state or a touch event." }
+      }
+    }
+  }
+}

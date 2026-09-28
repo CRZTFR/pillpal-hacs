@@ -1,0 +1,136 @@
+notify:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: pill_pal
+    pattern:
+      required: true
+      selector:
+        select:
+          options: [flash, pulse, sweep, rainbow]
+          translation_key: notify_pattern
+    color:
+      selector:
+        color_rgb:
+    duration:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: s
+set_status:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: pill_pal
+    status_id:
+      required: true
+      example: garage
+      selector:
+        text:
+    color:
+      required: true
+      selector:
+        color_rgb:
+    pattern:
+      default: solid
+      selector:
+        select:
+          options: [solid, pulse]
+          translation_key: status_pattern
+    brightness:
+      default: 255
+      selector:
+        number:
+          min: 1
+          max: 255
+    label:
+      example: Garage door open
+      selector:
+        text:
+    priority:
+      default: normal
+      selector:
+        select:
+          options: [low, normal, high]
+          translation_key: priority
+    clears_at:
+      selector:
+        datetime:
+clear_status:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: pill_pal
+    status_id:
+      required: true
+      selector:
+        text:
+set_gauge:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: pill_pal
+    value:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.01
+    color:
+      required: true
+      selector:
+        color_rgb:
+    color_end:
+      selector:
+        color_rgb:
+    stale_after:
+      default: 900
+      selector:
+        number:
+          min: 60
+          max: 86400
+          unit_of_measurement: s
+clear_gauge:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: pill_pal
+acknowledge:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: pill_pal
+    occurrence_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+snooze:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: pill_pal
+    occurrence_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
