@@ -68,7 +68,8 @@
     "sensor": {
       "next_reminder": { "name": "Next reminder" },
       "signalling": { "name": "Reminders showing" },
-      "statuses": { "name": "Statuses" }
+      "statuses": { "name": "Statuses" },
+      "wifi_signal": { "name": "Wi-Fi signal" }
     }
   },
   "exceptions": {

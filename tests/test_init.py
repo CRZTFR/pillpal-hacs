@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.const import CONF_HOST, CONF_PORT, EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
@@ -41,6 +42,7 @@ SNAPSHOT = {
         "gauge": None,
     },
     "lastTouch": None,
+    "network": {"ip": "192.168.86.182", "ssid": "Cole wifi", "rssi": -57},
     "occurrences": [
         {"id": 3, "state": "due", "start": 1790598000000, "end": 1790601600000},
         {"id": 4, "state": "upcoming", "start": 1790605200000, "end": 1790608800000},
@@ -93,6 +95,23 @@ async def test_entities(hass: HomeAssistant, entry, lamp) -> None:
     assert statuses.state == "2"
     owned = [s["set_by_home_assistant"] for s in statuses.attributes["statuses"]]
     assert owned == [True, False]
+
+    # A diagnostic, and off until someone turns it on.
+    registry = er.async_get(hass)
+    signal = registry.async_get("sensor.pill_pal_wi_fi_signal")
+    assert signal is not None
+    assert signal.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert signal.entity_category is EntityCategory.DIAGNOSTIC
+
+
+def test_wifi_signal_reads_the_network_block() -> None:
+    from custom_components.pill_pal.sensor import _wifi_attributes, _wifi_signal
+
+    assert _wifi_signal(SNAPSHOT, 9) == -57
+    assert _wifi_attributes(SNAPSHOT, 9) == {"network": "Cole wifi"}
+    # Firmware before the field, or a lamp off its network.
+    assert _wifi_signal({"network": {"ip": "10.0.0.2"}}, 9) is None
+    assert _wifi_signal({}, 9) is None
 
 
 async def test_a_touch_becomes_an_event(hass: HomeAssistant, entry, lamp) -> None:
