@@ -1,0 +1,803 @@
+{
+  "contract": "device-v2",
+  "version": 1,
+  "description": "Resolving a schedule to occurrence windows. `openAt` asks for the window open at an instant; `nextFrom` asks for the first window starting at or after one. Synthetic transitions keep the daylight-saving cases independent of any country's current law; the Australian zones are real, because Australia is a launch market and its daylight period wraps the new year, which is the case a northern-hemisphere-only zone never exercises. Australian expectations were derived from the IANA database, not from any implementation here.",
+  "zones": {
+    "utc": "UTC0",
+    "synthetic": "TST0TDT,M3.1.0,M11.1.0",
+    "sydney": "AEST-10AEDT,M10.1.0,M4.1.0/3",
+    "adelaide": "ACST-9:30ACDT,M10.1.0,M4.1.0/3",
+    "brisbane": "AEST-10",
+    "perth": "AWST-8"
+  },
+  "cases": [
+    {
+      "id": "daily-next-window",
+      "scenario": "REM-01",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-16T07:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-16T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-16T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-16T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "daily-rolls-to-tomorrow",
+      "scenario": "REM-46",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-16T09:15:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-17T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-17T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-17T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "open-window-has-only-its-remainder",
+      "scenario": "REM-45",
+      "note": "Creating or enabling at 08:30 signals for thirty minutes, not a fresh hour.",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "openAt": {
+        "local": "2026-09-16T08:30:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-16T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-16T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-16T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "window-closed-exactly-at-expiry",
+      "scenario": "REM-30",
+      "note": "At the exclusive end nothing is open, so there is no brief flash.",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "openAt": {
+        "local": "2026-09-16T09:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": false
+      }
+    },
+    {
+      "id": "window-open-a-minute-before-expiry",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "openAt": {
+        "local": "2026-09-16T08:59:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-16T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-16T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-16T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "custom-window-length",
+      "scenario": "REM-05",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 120
+      },
+      "nextFrom": {
+        "local": "2026-09-16T07:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-16T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-16T10:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-16T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "weekdays-skips-an-unselected-day",
+      "scenario": "REM-18",
+      "note": "2026-09-16 is a Wednesday, 2026-09-17 a Thursday, 2026-09-18 a Friday.",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "weekdays",
+        "weekdays": [
+          "mon",
+          "wed",
+          "fri"
+        ],
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-17T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-18T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-18T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-18T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "daily-and-all-seven-weekdays-agree",
+      "scenario": "REM-20",
+      "note": "Stated as a separate case because the contract requires the two forms to be equivalent.",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "weekdays",
+        "weekdays": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ],
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-17T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-17T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-17T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-17T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "weekday-window-crossing-midnight",
+      "scenario": "REM-47",
+      "note": "Weekday eligibility refers to the window's start date, so a Monday 23:30 window is still open on Tuesday.",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "weekdays",
+        "weekdays": [
+          "mon"
+        ],
+        "time": "23:30",
+        "durationMinutes": 120
+      },
+      "openAt": {
+        "local": "2026-09-15T00:30:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-14T23:30:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-15T01:30:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-14T23:30:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "one-off-produces-one-occurrence",
+      "scenario": "REM-19",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "one_off",
+        "date": "2026-09-20",
+        "time": "14:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-16T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-20T14:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-20T15:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-20T14:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "one-off-does-not-recur",
+      "scenario": "REM-19",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "one_off",
+        "date": "2026-09-20",
+        "time": "14:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-21T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": false
+      }
+    },
+    {
+      "id": "every-n-weeks-skips-the-off-week",
+      "note": "Anchored on Monday 2026-09-14, every two weeks. The following Monday is not eligible.",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "every_n_weeks",
+        "date": "2026-09-14",
+        "intervalWeeks": 2,
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-15T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-28T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-28T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-28T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "every-n-weeks-before-the-anchor",
+      "note": "Nothing before the anchor date, whatever the interval arithmetic would say.",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "every_n_weeks",
+        "date": "2026-09-14",
+        "intervalWeeks": 2,
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-09-01T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-09-14T08:00:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-09-14T09:00:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-09-14T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "start-shifted-out-of-a-gap",
+      "scenario": "TIME-04",
+      "note": "The clock jumps 02:00 to 03:00, so an 02:30 reminder starts at 03:00 and not 03:30. Its identity stays 02:30.",
+      "zone": "synthetic",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "02:30",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-03-01T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-03-01T03:00:00",
+          "offsetMinutes": 60
+        },
+        "end": {
+          "local": "2026-03-01T04:00:00",
+          "offsetMinutes": 60
+        },
+        "scheduledLocal": "2026-03-01T02:30:00",
+        "resolution": "shifted_out_of_gap"
+      }
+    },
+    {
+      "id": "repeated-local-time-uses-the-first",
+      "scenario": "TIME-05",
+      "note": "01:30 happens twice when the clock goes back. Only the first produces an occurrence, still on daylight time at offset 60.",
+      "zone": "synthetic",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "01:30",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-11-01T00:00:00",
+        "offsetMinutes": 60
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-11-01T01:30:00",
+          "offsetMinutes": 60
+        },
+        "end": {
+          "local": "2026-11-01T01:30:00",
+          "offsetMinutes": 0
+        },
+        "scheduledLocal": "2026-11-01T01:30:00",
+        "resolution": "first_of_repeated"
+      }
+    },
+    {
+      "id": "window-keeps-its-length-across-a-forward-jump",
+      "scenario": "TIME-06",
+      "note": "Sixty elapsed minutes from 01:30 reads as 03:30 locally, because an hour vanished during it.",
+      "zone": "synthetic",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "01:30",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-03-01T00:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-03-01T01:30:00",
+          "offsetMinutes": 0
+        },
+        "end": {
+          "local": "2026-03-01T03:30:00",
+          "offsetMinutes": 60
+        },
+        "scheduledLocal": "2026-03-01T01:30:00",
+        "resolution": "exact",
+        "elapsedMinutes": 60
+      }
+    },
+    {
+      "id": "disabled-produces-nothing",
+      "zone": "utc",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60,
+        "enabled": false
+      },
+      "nextFrom": {
+        "local": "2026-09-16T07:00:00",
+        "offsetMinutes": 0
+      },
+      "expect": {
+        "found": false
+      }
+    },
+    {
+      "id": "sydney-summer-new-year",
+      "note": "The daylight period began the previous October, so New Year's Day is on AEDT. A zone whose daylight period sits inside one calendar year never exercises this.",
+      "zone": "sydney",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-01-01T00:00:00",
+        "offsetMinutes": 660
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-01-01T08:00:00",
+          "offsetMinutes": 660
+        },
+        "end": {
+          "local": "2026-01-01T09:00:00",
+          "offsetMinutes": 660
+        },
+        "scheduledLocal": "2026-01-01T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "sydney-summer",
+      "zone": "sydney",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-01-15T00:00:00",
+        "offsetMinutes": 660
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-01-15T08:00:00",
+          "offsetMinutes": 660
+        },
+        "end": {
+          "local": "2026-01-15T09:00:00",
+          "offsetMinutes": 660
+        },
+        "scheduledLocal": "2026-01-15T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "sydney-winter",
+      "note": "Standard time, half a year from the summer case, same local reminder time.",
+      "zone": "sydney",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-07-15T00:00:00",
+        "offsetMinutes": 600
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-07-15T08:00:00",
+          "offsetMinutes": 600
+        },
+        "end": {
+          "local": "2026-07-15T09:00:00",
+          "offsetMinutes": 600
+        },
+        "scheduledLocal": "2026-07-15T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "sydney-new-years-eve",
+      "note": "The other side of the wrap: daylight time that will not end until the following April.",
+      "zone": "sydney",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-12-31T00:00:00",
+        "offsetMinutes": 660
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-12-31T08:00:00",
+          "offsetMinutes": 660
+        },
+        "end": {
+          "local": "2026-12-31T09:00:00",
+          "offsetMinutes": 660
+        },
+        "scheduledLocal": "2026-12-31T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "sydney-start-shifted-out-of-a-gap",
+      "scenario": "TIME-04",
+      "note": "On 4 October 2026 the clock goes from 02:00 AEST to 03:00 AEDT, so 02:30 does not exist. The occurrence starts at 03:00 and keeps 02:30 as its identity.",
+      "zone": "sydney",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "02:30",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-10-04T00:00:00",
+        "offsetMinutes": 600
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-10-04T03:00:00",
+          "offsetMinutes": 660
+        },
+        "end": {
+          "local": "2026-10-04T04:00:00",
+          "offsetMinutes": 660
+        },
+        "scheduledLocal": "2026-10-04T02:30:00",
+        "resolution": "shifted_out_of_gap",
+        "elapsedMinutes": 60
+      }
+    },
+    {
+      "id": "sydney-window-across-the-spring-forward",
+      "scenario": "TIME-06",
+      "note": "Sixty elapsed minutes from 01:30 AEST reads as 03:30 AEDT, because an hour vanished during the window.",
+      "zone": "sydney",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "01:30",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-10-04T00:00:00",
+        "offsetMinutes": 600
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-10-04T01:30:00",
+          "offsetMinutes": 600
+        },
+        "end": {
+          "local": "2026-10-04T03:30:00",
+          "offsetMinutes": 660
+        },
+        "scheduledLocal": "2026-10-04T01:30:00",
+        "resolution": "exact",
+        "elapsedMinutes": 60
+      }
+    },
+    {
+      "id": "sydney-repeated-local-time",
+      "scenario": "TIME-05",
+      "note": "On 5 April 2026 the clock goes from 03:00 AEDT back to 02:00 AEST, so 02:30 happens twice. Only the first produces an occurrence. Sixty elapsed minutes later the clock reads 02:30 again, now on AEST: start and end share a local time and differ only in offset.",
+      "zone": "sydney",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "02:30",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-04-05T00:00:00",
+        "offsetMinutes": 660
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-04-05T02:30:00",
+          "offsetMinutes": 660
+        },
+        "end": {
+          "local": "2026-04-05T02:30:00",
+          "offsetMinutes": 600
+        },
+        "scheduledLocal": "2026-04-05T02:30:00",
+        "resolution": "first_of_repeated",
+        "elapsedMinutes": 60
+      }
+    },
+    {
+      "id": "adelaide-summer-half-hour-offset",
+      "note": "A zone that is both half-hour and wrapping.",
+      "zone": "adelaide",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-01-15T00:00:00",
+        "offsetMinutes": 630
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-01-15T08:00:00",
+          "offsetMinutes": 630
+        },
+        "end": {
+          "local": "2026-01-15T09:00:00",
+          "offsetMinutes": 630
+        },
+        "scheduledLocal": "2026-01-15T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "adelaide-winter-half-hour-offset",
+      "zone": "adelaide",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-07-15T00:00:00",
+        "offsetMinutes": 570
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-07-15T08:00:00",
+          "offsetMinutes": 570
+        },
+        "end": {
+          "local": "2026-07-15T09:00:00",
+          "offsetMinutes": 570
+        },
+        "scheduledLocal": "2026-07-15T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "brisbane-has-no-daylight-saving",
+      "note": "Same country and the same summer date as the Sydney case, but this zone never shifts. A parser that assumes daylight rules would get this wrong.",
+      "zone": "brisbane",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-01-15T00:00:00",
+        "offsetMinutes": 600
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-01-15T08:00:00",
+          "offsetMinutes": 600
+        },
+        "end": {
+          "local": "2026-01-15T09:00:00",
+          "offsetMinutes": 600
+        },
+        "scheduledLocal": "2026-01-15T08:00:00",
+        "resolution": "exact"
+      }
+    },
+    {
+      "id": "perth-fixed-offset",
+      "zone": "perth",
+      "schedule": {
+        "id": 1,
+        "recurrence": "daily",
+        "time": "08:00",
+        "durationMinutes": 60
+      },
+      "nextFrom": {
+        "local": "2026-01-15T00:00:00",
+        "offsetMinutes": 480
+      },
+      "expect": {
+        "found": true,
+        "start": {
+          "local": "2026-01-15T08:00:00",
+          "offsetMinutes": 480
+        },
+        "end": {
+          "local": "2026-01-15T09:00:00",
+          "offsetMinutes": 480
+        },
+        "scheduledLocal": "2026-01-15T08:00:00",
+        "resolution": "exact"
+      }
+    }
+  ]
+}

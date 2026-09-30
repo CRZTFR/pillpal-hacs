@@ -1,7 +1,9 @@
 """What the lamp is doing, for dashboards and conditions.
 
-The next reminder and how many are signalling come from the lamp's occurrences; the
-statuses sensor lists what every controller has set, with the ones this integration
+How many reminders are signalling comes from the lamp's occurrences. The next reminder
+needs the schedules too, because the lamp only turns a schedule into an occurrence once
+its window opens, so tomorrow's reminder is never in the list; it is resolved here with
+the lamp's own time zone rule, the same way the lamp will resolve it. The statuses sensor lists what every controller has set, with the ones this integration
 owns marked, so an automation reconciling after a restart can see what is still there.
 The Wi-Fi signal is a diagnostic, off by default like every signal-strength sensor, for
 the day someone asks why the lamp keeps dropping out; firmware from 2026-09-29 reports it.
@@ -10,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+import logging
 from typing import Any, Callable
 
 from homeassistant.components.sensor import (
@@ -21,19 +24,48 @@ from homeassistant.components.sensor import (
 from homeassistant.const import SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from . import PillPalConfigEntry
 from .coordinator import PillPalCoordinator
 from .entity import PillPalEntity
+from .instants import Instant
+from .posix_tz import PosixTzError, parse_posix_tz
+from .windows import next_window_from
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _next_reminder(data: dict[str, Any], _grant: int) -> datetime | None:
     starts = [
-        o["start"]
+        datetime.fromtimestamp(o["start"] / 1000, tz=UTC)
         for o in data.get("occurrences") or []
         if o.get("state") in ("upcoming", "snoozed") and isinstance(o.get("start"), int)
     ]
-    return datetime.fromtimestamp(min(starts) / 1000, tz=UTC) if starts else None
+    starts.extend(_next_scheduled(data))
+    return min(starts) if starts else None
+
+
+def _next_scheduled(data: dict[str, Any]) -> list[datetime]:
+    schedules = data.get("schedules") or []
+    if not schedules or not data.get("timeZone"):
+        return []
+    try:
+        zone = parse_posix_tz(data["timeZone"])
+    except PosixTzError:
+        _LOGGER.debug("Pill Pal reported a time zone it cannot use: %s", data["timeZone"])
+        return []
+    now = Instant(dt_util.utcnow().replace(tzinfo=None))
+    starts = []
+    for schedule in schedules:
+        try:
+            window = next_window_from(schedule, zone, now)
+        except (KeyError, TypeError, ValueError):
+            # A recurrence newer than this copy of the resolver, or a malformed entry.
+            continue
+        if window is not None:
+            starts.append(window.start_utc.replace(tzinfo=UTC))
+    return starts
 
 
 def _signalling(data: dict[str, Any], _grant: int) -> int:
