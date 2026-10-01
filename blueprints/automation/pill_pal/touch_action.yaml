@@ -1,0 +1,73 @@
+blueprint:
+  name: Pill Pal - do something when the lamp is touched
+  description: >-
+    Runs actions when someone touches the lamp. A long press does nothing on the lamp
+    itself, so it is the gesture to use. A tap or double tap still does its usual job
+    on the lamp as well, such as turning it on or acknowledging a reminder.
+  domain: automation
+  source_url: https://github.com/CRZTFR/pillpal-hacs/blob/main/blueprints/automation/pill_pal/touch_action.yaml
+  input:
+    touch:
+      name: The lamp's Touch entity
+      selector:
+        entity:
+          integration: pill_pal
+          domain: event
+    gesture:
+      name: Gesture
+      default: long_press
+      selector:
+        select:
+          options:
+            - label: Long press (1 to 3 seconds)
+              value: long_press
+            - label: Tap
+              value: tap
+            - label: Double tap
+              value: double_tap
+    when:
+      name: Only when the lamp is showing
+      default: any
+      selector:
+        select:
+          options:
+            - label: Anything
+              value: any
+            - label: Nothing in particular
+              value: idle
+            - label: A status
+              value: status
+            - label: A reminder
+              value: reminder
+            - label: A pattern
+              value: notify
+    actions:
+      name: Actions
+      selector:
+        action: {}
+
+mode: queued
+max: 10
+
+variables:
+  gesture: !input gesture
+  when: !input when
+
+triggers:
+  - trigger: state
+    entity_id: !input touch
+
+conditions:
+  # A touch changes the entity's time. Coming back after a restart or dropout is not
+  # a touch.
+  - condition: template
+    value_template: >-
+      {{ trigger.from_state is not none
+         and trigger.from_state.state != 'unavailable'
+         and trigger.to_state.state not in ['unavailable', 'unknown'] }}
+  - condition: template
+    value_template: "{{ trigger.to_state.attributes.event_type == gesture }}"
+  - condition: template
+    value_template: "{{ when == 'any' or trigger.to_state.attributes.mode == when }}"
+
+actions: !input actions

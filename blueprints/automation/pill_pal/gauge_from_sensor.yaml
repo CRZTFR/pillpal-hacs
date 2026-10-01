@@ -1,0 +1,89 @@
+blueprint:
+  name: Pill Pal - show a sensor on the gauge
+  description: >-
+    Fills the lamp in proportion to a sensor's value between a low and a high mark,
+    for example solar export between 0 and 5000 W. The value is sent again every five
+    minutes, so a reading that has not changed does not look stale. If the sensor
+    becomes unavailable, or Home Assistant stops, the lamp shows its stale cue once
+    the stale time has passed.
+  domain: automation
+  source_url: https://github.com/CRZTFR/pillpal-hacs/blob/main/blueprints/automation/pill_pal/gauge_from_sensor.yaml
+  input:
+    lamp:
+      name: Lamp
+      selector:
+        device:
+          integration: pill_pal
+    sensor:
+      name: Sensor
+      selector:
+        entity:
+          domain: [sensor, number, input_number]
+    minimum:
+      name: Empty at
+      description: The value that shows an empty lamp.
+      default: 0
+      selector:
+        number:
+          min: -1000000
+          max: 1000000
+          mode: box
+    maximum:
+      name: Full at
+      description: The value that shows a full lamp. It must be higher than Empty at.
+      default: 100
+      selector:
+        number:
+          min: -1000000
+          max: 1000000
+          mode: box
+    color:
+      name: Colour at the empty end
+      default: [255, 200, 0]
+      selector:
+        color_rgb: {}
+    color_end:
+      name: Colour at the full end
+      description: The same as the first colour for a single colour.
+      default: [255, 200, 0]
+      selector:
+        color_rgb: {}
+    stale_after:
+      name: Stale after
+      description: How long without a new value before the lamp shows the stale cue.
+      default: 900
+      selector:
+        number:
+          min: 600
+          max: 86400
+          unit_of_measurement: s
+
+mode: queued
+max: 3
+
+variables:
+  sensor: !input sensor
+  minimum: !input minimum
+  maximum: !input maximum
+
+triggers:
+  - trigger: state
+    entity_id: !input sensor
+  - trigger: time_pattern
+    minutes: "/5"
+  - trigger: homeassistant
+    event: start
+
+conditions:
+  - condition: template
+    value_template: "{{ states(sensor) | is_number and maximum > minimum }}"
+
+actions:
+  - action: pill_pal.set_gauge
+    data:
+      device_id: !input lamp
+      value: >-
+        {{ [[(states(sensor) | float - minimum) / (maximum - minimum), 0] | max, 1] | min }}
+      color: !input color
+      color_end: !input color_end
+      stale_after: !input stale_after

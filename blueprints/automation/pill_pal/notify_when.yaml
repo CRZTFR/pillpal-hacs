@@ -1,0 +1,64 @@
+blueprint:
+  name: Pill Pal - play a pattern when something happens
+  description: >-
+    Plays a short pattern on the lamp when an entity changes to a state, for example
+    when the washing machine finishes. The lamp goes back to what it was showing
+    afterwards, and a touch stops the pattern early.
+  domain: automation
+  source_url: https://github.com/CRZTFR/pillpal-hacs/blob/main/blueprints/automation/pill_pal/notify_when.yaml
+  input:
+    lamp:
+      name: Lamp
+      selector:
+        device:
+          integration: pill_pal
+    watched:
+      name: Entity to watch
+      description: For example the washing machine's status sensor.
+      selector:
+        entity: {}
+    to_state:
+      name: State
+      description: >-
+        The state that plays the pattern, exactly as Home Assistant shows it under
+        Developer tools > States, for example off or finished.
+      selector:
+        text: {}
+    pattern:
+      name: Pattern
+      default: pulse
+      selector:
+        select:
+          options: [flash, pulse, sweep, rainbow]
+    color:
+      name: Colour
+      description: Not used by rainbow.
+      default: [0, 120, 255]
+      selector:
+        color_rgb: {}
+    duration:
+      name: How long
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: s
+
+mode: queued
+max: 5
+
+triggers:
+  - trigger: state
+    entity_id: !input watched
+    to: !input to_state
+    # Not when the entity comes back after a restart or a dropout.
+    not_from: [unavailable, unknown]
+
+actions:
+  - action: pill_pal.notify
+    data:
+      device_id: !input lamp
+      pattern: !input pattern
+      color: !input color
+      duration: !input duration

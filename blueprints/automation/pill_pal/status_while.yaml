@@ -1,0 +1,80 @@
+blueprint:
+  name: Pill Pal - show a status while something is true
+  description: >-
+    Shows a status on the lamp while an entity is in a state, and clears it when the
+    entity leaves that state. For example, amber while the garage door is open. A tap
+    on the lamp dims the status but keeps it until the entity changes back. After Home
+    Assistant restarts, this checks the entity again and puts the lamp right.
+  domain: automation
+  source_url: https://github.com/CRZTFR/pillpal-hacs/blob/main/blueprints/automation/pill_pal/status_while.yaml
+  input:
+    lamp:
+      name: Lamp
+      selector:
+        device:
+          integration: pill_pal
+    watched:
+      name: Entity to watch
+      description: For example the garage door.
+      selector:
+        entity: {}
+    on_state:
+      name: State
+      description: >-
+        The state that shows the status, exactly as Home Assistant shows it under
+        Developer tools > States, for example open or on.
+      selector:
+        text: {}
+    status_id:
+      name: Status ID
+      description: >-
+        A short name for this status, using letters, numbers, dots, dashes and
+        underscores, up to 23 characters. Give each automation its own.
+      selector:
+        text: {}
+    color:
+      name: Colour
+      default: [255, 136, 0]
+      selector:
+        color_rgb: {}
+    label:
+      name: Label
+      description: Shown in the Bindicator app next to the status. Up to 47 characters.
+      default: ""
+      selector:
+        text: {}
+    priority:
+      name: Priority
+      description: When more statuses are set than the lamp can show, higher ones show first.
+      default: normal
+      selector:
+        select:
+          options: [low, normal, high]
+
+mode: restart
+
+triggers:
+  - trigger: state
+    entity_id: !input watched
+  - trigger: homeassistant
+    event: start
+
+actions:
+  - if:
+      - condition: state
+        entity_id: !input watched
+        state: !input on_state
+    then:
+      - action: pill_pal.set_status
+        data:
+          device_id: !input lamp
+          status_id: !input status_id
+          color: !input color
+          label: !input label
+          priority: !input priority
+    else:
+      # Clearing a status that is not set does nothing, so this is safe to repeat.
+      - action: pill_pal.clear_status
+        data:
+          device_id: !input lamp
+          status_id: !input status_id
