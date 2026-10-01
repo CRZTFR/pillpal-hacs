@@ -125,6 +125,36 @@ def test_wifi_signal_reads_the_network_block() -> None:
     assert _wifi_signal({}, 9) is None
 
 
+def test_reminders_showing_lists_what_acknowledge_needs() -> None:
+    from custom_components.pill_pal.sensor import _signalling_attributes
+
+    snapshot = {
+        **SNAPSHOT,
+        "touchTarget": 3,
+        "schedules": [{"id": 12, "name": "Evening"}],
+        "occurrences": [
+            {"id": 3, "source": "native", "ownerId": 11, "state": "due", "name": "Morning",
+             "start": 1790598000000, "end": 1790601600000},
+            {"id": 5, "source": "native", "ownerId": 12, "state": "due",
+             "start": 1790598900000, "end": 1790602500000},
+            {"id": 4, "source": "native", "ownerId": 11, "state": "upcoming",
+             "start": 1790605200000, "end": 1790608800000},
+        ],
+    }
+    assert _signalling_attributes(snapshot, 9) == {
+        "touch_target": 3,
+        "reminders": [
+            {"occurrence_id": 3, "name": "Morning",
+             "due_at": "2026-09-28T12:20:00+00:00", "ends_at": "2026-09-28T13:20:00+00:00"},
+            # No name of its own, so the schedule's.
+            {"occurrence_id": 5, "name": "Evening",
+             "due_at": "2026-09-28T12:35:00+00:00", "ends_at": "2026-09-28T13:35:00+00:00"},
+        ],
+    }
+    # Nothing signalling: the lamp leaves touchTarget out.
+    assert _signalling_attributes({"occurrences": []}, 9) == {"touch_target": None, "reminders": []}
+
+
 async def test_a_touch_becomes_an_event(hass: HomeAssistant, entry, lamp) -> None:
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -165,6 +195,33 @@ async def test_actions_reach_the_lamp(hass: HomeAssistant, entry, lamp) -> None:
     operation, payload = lamp.call_args.args
     assert operation == "set_ambient"
     assert payload == {"on": True, "level": 40, "colour": "#0a141e", "scene": 5}
+
+
+async def test_scenes_by_the_lamps_numbers(hass: HomeAssistant, entry, lamp) -> None:
+    # The scenes added after the custom colour are numbered past it, out of cycle order.
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    light = hass.states.get("light.pill_pal_ambient_light")
+    assert light.attributes["effect_list"] == [
+        "warm_white", "candle", "sunrise", "candy_floss", "lavender",
+        "ocean", "aurora", "forest", "sherbet",
+    ]
+
+    await hass.services.async_call(
+        "light", "turn_on",
+        {"entity_id": "light.pill_pal_ambient_light", "effect": "lavender"},
+        blocking=True,
+    )
+    assert lamp.call_args.args == ("set_ambient", {"on": True, "scene": 6})
+
+    coordinator = entry.runtime_data.coordinator
+    coordinator.async_set_updated_data({**SNAPSHOT, "ambient": {**SNAPSHOT["ambient"], "scene": 7}})
+    await hass.async_block_till_done()
+    assert hass.states.get("light.pill_pal_ambient_light").attributes["effect"] == "candy_floss"
+
+    coordinator.async_set_updated_data({**SNAPSHOT, "ambient": {**SNAPSHOT["ambient"], "scene": 5}})
+    await hass.async_block_till_done()
+    assert hass.states.get("light.pill_pal_ambient_light").attributes["effect"] is None
 
 
 async def test_a_refusal_is_reported(hass: HomeAssistant, entry, lamp) -> None:

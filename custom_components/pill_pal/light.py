@@ -21,7 +21,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import PillPalConfigEntry
 from .api import PillPalError
-from .const import DOMAIN, SCENE_CUSTOM, SCENES
+from .const import DOMAIN, SCENE_CUSTOM, SCENE_NAMES, SCENES
 from .entity import PillPalEntity
 
 
@@ -45,7 +45,7 @@ class PillPalAmbient(PillPalEntity, LightEntity):
     _attr_color_mode = ColorMode.RGB
     _attr_supported_color_modes = {ColorMode.RGB}
     _attr_supported_features = LightEntityFeature.EFFECT
-    _attr_effect_list = SCENES
+    _attr_effect_list = list(SCENES)
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator, "ambient")
@@ -69,9 +69,7 @@ class PillPalAmbient(PillPalEntity, LightEntity):
     @property
     def effect(self) -> str | None:
         scene = self._ambient.get("scene")
-        if isinstance(scene, int) and 0 <= scene < len(SCENES):
-            return SCENES[scene]
-        return None
+        return SCENE_NAMES.get(scene) if isinstance(scene, int) else None
 
     async def _send(self, payload: dict[str, Any]) -> None:
         try:
@@ -93,7 +91,7 @@ class PillPalAmbient(PillPalEntity, LightEntity):
             payload["colour"] = f"#{red:02x}{green:02x}{blue:02x}"
             payload["scene"] = SCENE_CUSTOM
         if ATTR_EFFECT in kwargs and kwargs[ATTR_EFFECT] in SCENES:
-            payload["scene"] = SCENES.index(kwargs[ATTR_EFFECT])
+            payload["scene"] = SCENES[kwargs[ATTR_EFFECT]]
         await self._send(payload)
 
     async def async_turn_off(self, **kwargs: Any) -> None:

@@ -43,9 +43,13 @@
             "state": {
               "warm_white": "Warm white",
               "candle": "Candle",
-              "ocean": "Ocean",
               "sunrise": "Sunrise",
-              "forest": "Forest"
+              "candy_floss": "Candy floss",
+              "lavender": "Lavender",
+              "ocean": "Ocean",
+              "aurora": "Aurora",
+              "forest": "Forest",
+              "sherbet": "Sherbet"
             }
           }
         }

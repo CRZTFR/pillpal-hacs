@@ -41,8 +41,21 @@ POLL_INTERVAL_SECONDS = 300
 SIGNAL_TOUCH = f"{DOMAIN}_touch_{{device_id}}"
 SIGNAL_AVAILABILITY = f"{DOMAIN}_availability_{{device_id}}"
 
-# The lamp's built-in ambient scenes, in its order (controller.h). Custom is a colour.
-SCENES = ["warm_white", "candle", "ocean", "sunrise", "forest"]
+# The lamp's built-in ambient scenes and their numbers (controller.h), in its double-tap
+# order. A scene keeps its number for good, so the numbers are not in sequence; 5 is
+# Custom, a colour chosen in the app.
+SCENES = {
+    "warm_white": 0,
+    "candle": 1,
+    "sunrise": 3,
+    "candy_floss": 7,
+    "lavender": 6,
+    "ocean": 2,
+    "aurora": 8,
+    "forest": 4,
+    "sherbet": 9,
+}
+SCENE_NAMES = {number: name for name, number in SCENES.items()}
 SCENE_CUSTOM = 5
 
 # A snooze always lasts this long from the moment it is taken (README, "Occurrence

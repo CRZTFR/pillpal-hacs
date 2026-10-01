@@ -78,6 +78,38 @@ def _signalling(data: dict[str, Any], _grant: int) -> int:
     return sum(1 for o in data.get("occurrences") or [] if o.get("state") == "due")
 
 
+def _signalling_attributes(data: dict[str, Any], _grant: int) -> dict[str, Any]:
+    """The reminders showing, with the occurrence IDs acknowledge and snooze need.
+
+    The touch target is the one a tap on the lamp would act on, so an automation can
+    acknowledge or snooze the same reminder a person at the lamp would.
+    """
+    schedules = {
+        s.get("id"): s.get("name") for s in data.get("schedules") or [] if isinstance(s, dict)
+    }
+    target = data.get("touchTarget")
+    reminders = []
+    for o in data.get("occurrences") or []:
+        if not isinstance(o, dict) or o.get("state") != "due":
+            continue
+        start, end = wire_time(o.get("start")), wire_time(o.get("end"))
+        name = o.get("name")
+        if name is None and o.get("source") == "native":
+            name = schedules.get(o.get("ownerId"))
+        reminders.append(
+            {
+                "occurrence_id": o.get("id"),
+                "name": name,
+                "due_at": start.isoformat() if start else None,
+                "ends_at": end.isoformat() if end else None,
+            }
+        )
+    return {
+        "touch_target": target if isinstance(target, int) and not isinstance(target, bool) else None,
+        "reminders": reminders,
+    }
+
+
 def _statuses(data: dict[str, Any], _grant: int) -> int:
     return len(((data.get("indicators") or {}).get("statuses")) or [])
 
@@ -207,6 +239,7 @@ SENSORS = (
         key="signalling",
         translation_key="signalling",
         value=_signalling,
+        attributes=_signalling_attributes,
     ),
     PillPalSensorDescription(
         key="statuses",
