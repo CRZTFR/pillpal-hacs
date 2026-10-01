@@ -38,7 +38,14 @@ is reset forgets Home Assistant, and the integration asks you to approve it agai
 | Touch | An event for every tap, double tap and long press, with what the lamp was showing and what it did |
 | Next reminder | When the next reminder is due |
 | Reminders showing | How many reminders are signalling now |
-| Statuses | How many statuses are set, listed in its attributes |
+| Statuses | How many statuses are set, listed in its attributes with who set each one |
+| Gauge | The gauge level as a percentage, with its colours, whether it is stale, and who set it |
+| Notification | On while a notify is playing, with its pattern, colour, end time and who sent it |
+| Last reminder | Done, missed or snoozed, for the most recent reminder that was acted on or ran out, with its name and time |
+
+Indicators and reminder actions from any controller appear here, not only the ones Home
+Assistant sent. A gauge set in the app, or a reminder acknowledged at the lamp, shows up
+the same way.
 
 ## Actions
 

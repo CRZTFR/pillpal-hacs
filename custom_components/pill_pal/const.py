@@ -4,7 +4,9 @@ from __future__ import annotations
 from homeassistant.const import Platform
 
 DOMAIN = "pill_pal"
-PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.EVENT, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.LIGHT, Platform.EVENT, Platform.SENSOR, Platform.BINARY_SENSOR
+]
 
 DEFAULT_PORT = 8080
 
@@ -42,6 +44,10 @@ SIGNAL_AVAILABILITY = f"{DOMAIN}_availability_{{device_id}}"
 # The lamp's built-in ambient scenes, in its order (controller.h). Custom is a colour.
 SCENES = ["warm_white", "candle", "ocean", "sunrise", "forest"]
 SCENE_CUSTOM = 5
+
+# A snooze always lasts this long from the moment it is taken (README, "Occurrence
+# lifecycle"), so a snoozed occurrence's deadline also says when it was snoozed.
+SNOOZE_MS = 10 * 60 * 1000
 
 NOTIFY_PATTERNS = ["flash", "pulse", "sweep", "rainbow"]
 STATUS_PATTERNS = ["solid", "pulse"]

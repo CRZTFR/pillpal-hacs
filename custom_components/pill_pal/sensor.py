@@ -7,11 +7,16 @@ the lamp's own time zone rule, the same way the lamp will resolve it. The status
 owns marked, so an automation reconciling after a restart can see what is still there.
 The Wi-Fi signal is a diagnostic, off by default like every signal-strength sensor, for
 the day someone asks why the lamp keeps dropping out; firmware from 2026-09-29 reports it.
+
+The gauge and the last reminder mirror what any controller did, so a gauge set from the
+app or a reminder acknowledged at the lamp shows here as well. An occurrence that ends
+leaves the live list, so how it ended comes from the snapshot's recent outcomes; a snooze
+is not terminal and is read from the live occurrence instead.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any, Callable
 
@@ -21,14 +26,15 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory
+from homeassistant.const import PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import PillPalConfigEntry
+from .const import SNOOZE_MS
 from .coordinator import PillPalCoordinator
-from .entity import PillPalEntity
+from .entity import PillPalEntity, set_by, wire_time
 from .instants import Instant
 from .posix_tz import PosixTzError, parse_posix_tz
 from .windows import next_window_from
@@ -96,10 +102,91 @@ def _status_attributes(data: dict[str, Any], grant: int) -> dict[str, Any]:
                 "shown": s.get("shown"),
                 "dimmed": s.get("dimmed"),
                 "priority": s.get("priority"),
+                "set_by": s.get("ownerLabel"),
                 "set_by_home_assistant": s.get("owner") == grant,
             }
             for s in statuses
         ]
+    }
+
+
+def _gauge(data: dict[str, Any]) -> dict[str, Any] | None:
+    gauge = (data.get("indicators") or {}).get("gauge")
+    return gauge if isinstance(gauge, dict) else None
+
+
+def _gauge_value(data: dict[str, Any], _grant: int) -> float | None:
+    gauge = _gauge(data)
+    value = gauge.get("value") if gauge else None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    # The lamp keeps ten-thousandths, which is two decimal places of a percentage.
+    return round(value * 100.0, 2)
+
+
+def _gauge_attributes(data: dict[str, Any], grant: int) -> dict[str, Any]:
+    gauge = _gauge(data)
+    if gauge is None:
+        return {}
+    updated = wire_time(gauge.get("updatedAt"))
+    return {
+        "color": gauge.get("colour"),
+        "color_end": gauge.get("colourEnd"),
+        "stale": gauge.get("stale"),
+        "shown": gauge.get("shown"),
+        "updated_at": updated.isoformat() if updated else None,
+        **set_by(data, gauge.get("owner"), grant),
+    }
+
+
+OUTCOMES = {"acknowledged": "done", "expired": "missed"}
+LAST_REMINDER_STATES = ["done", "missed", "snoozed"]
+
+
+def _last_reminder(data: dict[str, Any]) -> dict[str, Any] | None:
+    """The latest acknowledgement, expiry or snooze, from whichever controller."""
+    occurrences = [o for o in data.get("occurrences") or [] if isinstance(o, dict)]
+    names = {o.get("id"): o.get("name") for o in occurrences}
+    schedules = {
+        s.get("id"): s.get("name") for s in data.get("schedules") or [] if isinstance(s, dict)
+    }
+    ended = set()
+    candidates = []
+    for row in data.get("recentOutcomes") or []:
+        if not isinstance(row, dict):
+            continue
+        ended.add(row.get("id"))
+        at = wire_time(row.get("endedAt"))
+        if row.get("state") not in OUTCOMES or at is None:
+            continue
+        name = names.get(row.get("id"))
+        if name is None and row.get("source") == "native":
+            name = schedules.get(row.get("ownerId"))
+        candidates.append((at, row.get("id"), OUTCOMES[row["state"]], at, name))
+    for o in occurrences:
+        until = wire_time(o.get("snoozeDeadline"))
+        if o.get("state") == "snoozed" and o.get("id") not in ended and until is not None:
+            snoozed_at = until - timedelta(milliseconds=SNOOZE_MS)
+            candidates.append((snoozed_at, o.get("id"), "snoozed", until, o.get("name")))
+    if not candidates:
+        return None
+    _, occurrence, state, at, name = max(candidates, key=lambda c: (c[0], c[1] or 0))
+    return {"state": state, "at": at, "occurrence_id": occurrence, "name": name}
+
+
+def _last_reminder_state(data: dict[str, Any], _grant: int) -> str | None:
+    last = _last_reminder(data)
+    return last["state"] if last else None
+
+
+def _last_reminder_attributes(data: dict[str, Any], _grant: int) -> dict[str, Any]:
+    last = _last_reminder(data)
+    if last is None:
+        return {}
+    return {
+        "name": last["name"],
+        "at": last["at"].isoformat(),
+        "occurrence_id": last["occurrence_id"],
     }
 
 
@@ -126,6 +213,23 @@ SENSORS = (
         translation_key="statuses",
         value=_statuses,
         attributes=_status_attributes,
+    ),
+    PillPalSensorDescription(
+        key="gauge",
+        translation_key="gauge",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+        value=_gauge_value,
+        attributes=_gauge_attributes,
+    ),
+    PillPalSensorDescription(
+        key="last_reminder",
+        translation_key="last_reminder",
+        device_class=SensorDeviceClass.ENUM,
+        options=LAST_REMINDER_STATES,
+        value=_last_reminder_state,
+        attributes=_last_reminder_attributes,
     ),
     PillPalSensorDescription(
         key="wifi_signal",

@@ -65,10 +65,22 @@
         }
       }
     },
+    "binary_sensor": {
+      "notification": { "name": "Notification" }
+    },
     "sensor": {
       "next_reminder": { "name": "Next reminder" },
       "signalling": { "name": "Reminders showing" },
       "statuses": { "name": "Statuses" },
+      "gauge": { "name": "Gauge" },
+      "last_reminder": {
+        "name": "Last reminder",
+        "state": {
+          "done": "Done",
+          "missed": "Missed",
+          "snoozed": "Snoozed"
+        }
+      },
       "wifi_signal": { "name": "Wi-Fi signal" }
     }
   },

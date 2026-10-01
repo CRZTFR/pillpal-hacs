@@ -1,13 +1,39 @@
-"""The base every Pill Pal entity shares: one device per lamp."""
+"""The base every Pill Pal entity shares: one device per lamp.
+
+Also how an entity says who set something. Only statuses carry their owner's name
+(indicators.md, "Reported state"), so a notify or gauge borrows it from a status the same
+grant set, as the app does, and this integration's own grant is always Home Assistant.
+"""
 from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Any
 
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, SIGNAL_AVAILABILITY
+from .const import DOMAIN, INTEGRATION_NAME, SIGNAL_AVAILABILITY
 from .coordinator import PillPalCoordinator
+
+
+def wire_time(value: Any) -> datetime | None:
+    """A snapshot's milliseconds since the epoch, or None for null or anything else."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return datetime.fromtimestamp(value / 1000, tz=UTC)
+
+
+def set_by(data: dict[str, Any], owner: Any, grant: int) -> dict[str, Any]:
+    label = None
+    for status in ((data.get("indicators") or {}).get("statuses")) or []:
+        if status.get("owner") == owner and status.get("ownerLabel"):
+            label = status["ownerLabel"]
+            break
+    if label is None and owner == grant:
+        label = INTEGRATION_NAME
+    return {"set_by": label, "set_by_home_assistant": owner == grant}
 
 
 class PillPalEntity(CoordinatorEntity[PillPalCoordinator]):
